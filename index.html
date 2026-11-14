@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Guardias | CEQ</title>
+  <meta name="description" content="Control de asistencia de las guardias del Centro de Estudiantes de Química.">
+  <meta name="theme-color" content="#173874">
+  <link rel="icon" href="favicon.ico" sizes="16x16 32x32 48x48">
+  <link rel="icon" href="favicon-192.png" type="image/png" sizes="192x192">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+  <style>
+    :root {
+      --marino: #173874;
+      --azul: #3873CE;
+      --azul-hover: #2D62B5;
+      --cielo: #D6E6FA;
+      --tarjeta: #EFF7FE;
+      --blanco: #FFFFFF;
+      --texto: #1E1E1E;
+      --suave: #5A6B85;
+      --linea: #C9DBF3;
+      --ok-bg: #E3F4EA;
+      --ok: #1D7A47;
+      --error-bg: #FBE3E1;
+      --error: #B2392F;
+      --radio: 18px;
+      --radio-chico: 8px;
+      --f: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: var(--f); background: var(--cielo); color: var(--texto); font-size: 15px; line-height: 1.5; min-height: 100vh; display: flex; flex-direction: column; }
+    button { font-family: inherit; }
+    svg.ic { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+    /* Barra superior */
+    .topbar { background: var(--blanco); border-bottom: 1px solid var(--linea); position: sticky; top: 0; z-index: 50; }
+    .topbar-in { max-width: 1200px; margin: 0 auto; padding: 10px 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    .marca { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--marino); }
+    .marca img { width: 40px; height: 40px; display: block; }
+    .marca b { font-size: 20px; font-weight: 800; letter-spacing: -.01em; }
+    .menu { display: flex; align-items: center; gap: 22px; list-style: none; }
+    .menu a { font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: .02em; color: var(--marino); text-decoration: none; padding: 6px 0; }
+    .menu a:hover { color: var(--azul); }
+    .menu .activo { color: var(--azul); box-shadow: inset 0 -2px 0 var(--azul); }
+
+    /* Portada */
+    .portada-in { max-width: 560px; margin: 0 auto; padding: 32px 20px 20px; display: flex; align-items: center; flex-wrap: wrap; gap: 10px 16px; }
+    .portada h1 { font-size: clamp(22px, 6vw, 32px); line-height: 1.1; font-weight: 600; text-transform: uppercase; color: var(--marino); letter-spacing: -.01em; }
+    .pastilla { display: inline-flex; align-items: center; gap: 6px; background: var(--blanco); color: var(--marino); border-radius: 999px; padding: 6px 12px; font-size: 13px; font-weight: 600; white-space: nowrap; margin-left: auto; font-variant-numeric: tabular-nums; }
+    .pastilla svg.ic { width: 15px; height: 15px; }
+    .portada-intro { flex-basis: 100%; font-size: 15px; color: var(--marino); }
+
+    /* Contenido */
+    .contenido { width: 100%; max-width: 560px; margin: 0 auto; padding: 0 20px 48px; display: grid; gap: 16px; flex: 1; align-content: start; }
+    .panel { background: var(--tarjeta); border-radius: var(--radio); padding: 24px; }
+    .titulo-seccion { display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 700; color: var(--marino); line-height: 1.2; margin-bottom: 6px; }
+    .titulo-seccion::before { content: ""; width: 4px; height: 1.1em; background: var(--marino); border-radius: 2px; flex: none; }
+    .paso { font-size: 12px; font-weight: 700; color: var(--azul); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px; }
+    .ayuda { color: var(--suave); font-size: 14px; margin-bottom: 14px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group label { font-size: 13px; font-weight: 600; color: var(--marino); }
+    .form-group input { width: 100%; padding: 12px 14px; border-radius: var(--radio-chico); border: 1px solid var(--linea); background: var(--blanco); color: var(--texto); font: 16px var(--f); }
+    .form-group input:focus { outline: none; border-color: var(--azul); box-shadow: 0 0 0 3px rgba(56,115,206,.18); }
+
+    .btn { width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 10px; border-radius: 5px; padding: 14px 18px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 12px; transition: background .15s, color .15s; }
+    .btn-primary { background: var(--azul); color: var(--blanco); border: 0; }
+    .btn-primary:hover:not(:disabled) { background: var(--azul-hover); }
+    .btn-marino { background: var(--marino); color: var(--blanco); border: 0; }
+    .btn-marino:hover:not(:disabled) { background: #0F2A5A; }
+    .btn-secundario { background: var(--blanco); color: var(--marino); border: 1px solid var(--marino); }
+    .btn-secundario:hover:not(:disabled) { background: var(--tarjeta); }
+    .btn:disabled { background: #A9C0E6; color: var(--blanco); border-color: transparent; cursor: not-allowed; }
+    .btn-link { background: none; border: 0; color: var(--azul); font-size: 14px; font-weight: 600; padding: 8px; margin-top: 4px; width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; }
+    .btn-link:hover { color: var(--marino); }
+    .btn-link svg.ic { width: 16px; height: 16px; }
+    .dos { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .dos .btn { margin-top: 0; }
+
+    #preview { width: 100%; border-radius: var(--radio-chico); margin-top: 12px; display: none; border: 1px solid var(--linea); }
+
+    .aviso { display: none; align-items: flex-start; gap: 10px; padding: 12px 14px; border-radius: var(--radio-chico); font-size: 14px; background: var(--blanco); color: var(--marino); border-left: 4px solid var(--azul); font-weight: 500; }
+    .aviso.visible { display: flex; }
+    .aviso svg.ic { margin-top: 1px; }
+    .aviso.ok { background: var(--ok-bg); color: var(--ok); border-left-color: var(--ok); }
+    .aviso.err { background: var(--error-bg); color: var(--error); border-left-color: var(--error); }
+    .aviso.info svg.ic { animation: girar 1s linear infinite; }
+    @keyframes girar { to { transform: rotate(360deg); } }
+
+    .saludo { display: flex; align-items: center; gap: 12px; }
+    .saludo .avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--marino); color: var(--blanco); display: grid; place-items: center; flex: none; }
+    .saludo b { display: block; color: var(--marino); font-size: 17px; }
+    .saludo span { color: var(--suave); font-size: 13px; }
+
+    .oculto { display: none !important; }
+
+    /* Pie */
+    .pie { background: var(--marino); }
+    .pie-in { max-width: 1200px; margin: 0 auto; padding: 28px 20px; display: flex; gap: 14px; align-items: center; }
+    .pie img { width: 48px; height: 48px; background: var(--blanco); border-radius: 12px; padding: 4px; flex: none; }
+    .pie-version { font-size: 15px; font-weight: 600; color: var(--blanco); }
+    .pie-version b { font-weight: 600; font-size: 12px; background: rgba(255,255,255,.14); border-radius: 4px; padding: 2px 7px; margin-left: 6px; vertical-align: 1px; }
+    .pie-copy { color: #A9BEDF; font-size: 13px; margin-top: 3px; }
+
+    @media (max-width: 640px) {
+      .topbar-in { padding: 8px 16px; }
+      .marca img { width: 34px; height: 34px; }
+      .marca b { font-size: 18px; }
+      .menu a { font-size: 13px; }
+      .portada-in { padding: 22px 16px 16px; }
+      .contenido { padding: 0 12px 32px; }
+      .panel { padding: 18px 14px; border-radius: 16px; }
+    }
+    @media (prefers-reduced-motion: reduce) { .aviso.info svg.ic { animation: none; } }
+  </style>
+</head>
+<body>
+  <!-- Íconos (estilo lineal, como el sitio de reservas) -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-reloj" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="i-usuario" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+    <symbol id="i-camara" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/></symbol>
+    <symbol id="i-entrada" viewBox="0 0 24 24"><path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4"/><path d="M10 16l4-4-4-4"/><path d="M14 12H4"/></symbol>
+    <symbol id="i-salida" viewBox="0 0 24 24"><path d="M10 20H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h4"/><path d="M16 16l4-4-4-4"/><path d="M20 12H10"/></symbol>
+    <symbol id="i-ubicacion" viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></symbol>
+    <symbol id="i-ok" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.7L16 10"/></symbol>
+    <symbol id="i-alerta" viewBox="0 0 24 24"><path d="M12 3l9.5 16.5h-19z"/><path d="M12 10v4M12 17.2v.1"/></symbol>
+    <symbol id="i-carga" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9"/></symbol>
+    <symbol id="i-cambiar" viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14-5.3L20 9"/><path d="M20 4v5h-5"/><path d="M20 12a8 8 0 0 1-14 5.3L4 15"/><path d="M4 20v-5h5"/></symbol>
+    <symbol id="i-flecha" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+    <symbol id="i-volver" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></symbol>
+  </svg>
+
+  <header class="topbar">
+    <div class="topbar-in">
+      <a class="marca" href="https://cequna2.wordpress.com/" aria-label="Centro de Estudiantes de Química, ir a la web">
+        <img src="logo-ceq.png" alt="">
+        <b>CEQ</b>
+      </a>
+      <nav aria-label="Principal">
+        <ul class="menu">
+          <li><a href="https://reservas.ceq-una.com/">Reservas</a></li>
+          <li><a href="#" class="activo">Guardias</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <section class="portada">
+    <div class="portada-in">
+      <h1>Control de guardias</h1>
+      <span class="pastilla"><svg class="ic"><use href="#i-reloj"/></svg><span id="reloj">--:--</span></span>
+      <p class="portada-intro" id="sub">Cargando…</p>
+    </div>
+  </section>
+
+  <main class="contenido">
+    <div id="msg" class="aviso" role="status" aria-live="polite"><svg class="ic"><use id="msgIcono" href="#i-alerta"/></svg><span id="msgTexto"></span></div>
+
+    <!-- Identificarse con CI -->
+    <section id="vistaCI" class="panel oculto" aria-labelledby="tCI">
+      <h2 class="titulo-seccion" id="tCI">Identificate</h2>
+      <p class="ayuda">Ingresá tu número de cédula para marcar tu guardia.</p>
+      <div class="form-group">
+        <label for="ci">Número de CI</label>
+        <input type="text" id="ci" inputmode="numeric" maxlength="12" autocomplete="off" placeholder="Solo números, sin puntos">
+      </div>
+      <button class="btn btn-primary" id="btnCI">Continuar<svg class="ic"><use href="#i-flecha"/></svg></button>
+    </section>
+
+    <!-- Primera vez: nombre y apellido -->
+    <section id="vistaRegistro" class="panel oculto" aria-labelledby="tReg">
+      <h2 class="titulo-seccion" id="tReg">Registrate</h2>
+      <p class="ayuda">Es la primera vez que usás esta CI. Escribí tu nombre <b>igual que lo ponés en la planilla de guardias</b>. Esto se hace una sola vez.</p>
+      <div class="form-group">
+        <label for="nombre">Nombre y apellido</label>
+        <input type="text" id="nombre" maxlength="60" autocomplete="name">
+      </div>
+      <button class="btn btn-primary" id="btnRegistrar"><svg class="ic"><use href="#i-usuario"/></svg>Registrarme</button>
+      <button class="btn-link" id="btnVolver"><svg class="ic"><use href="#i-volver"/></svg>Volver</button>
+    </section>
+
+    <!-- Fichar -->
+    <div id="vistaFichar" class="oculto" style="display:grid; gap:16px;">
+      <section class="panel">
+        <div class="saludo">
+          <div class="avatar"><svg class="ic"><use href="#i-usuario"/></svg></div>
+          <div><b id="nombreUsuario"></b><span id="ultimaMarca"></span></div>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="tFoto">
+        <div class="paso">Paso 1</div>
+        <h2 class="titulo-seccion" id="tFoto">Sacate una foto</h2>
+        <p class="ayuda">En el CEQ, que se vea tu cara y el lugar.</p>
+        <input type="file" id="foto" accept="image/*" capture="user" class="oculto">
+        <button class="btn btn-secundario" id="btnFoto"><svg class="ic"><use href="#i-camara"/></svg><span id="txtFoto">Abrir cámara</span></button>
+        <img id="preview" alt="Tu foto">
+      </section>
+
+      <section class="panel" aria-labelledby="tMarca">
+        <div class="paso">Paso 2</div>
+        <h2 class="titulo-seccion" id="tMarca">Marcá tu guardia</h2>
+        <p class="ayuda">Se va a pedir tu ubicación: tenés que estar en el CEQ.</p>
+        <div class="dos">
+          <button class="btn btn-primary" id="btnEntrada" disabled><svg class="ic"><use href="#i-entrada"/></svg>Entrada</button>
+          <button class="btn btn-marino" id="btnSalida" disabled><svg class="ic"><use href="#i-salida"/></svg>Salida</button>
+        </div>
+      </section>
+
+      <button class="btn-link" id="btnCambiar"><svg class="ic"><use href="#i-cambiar"/></svg>¿No sos vos? Cambiar de persona</button>
+    </div>
+  </main>
+
+  <footer class="pie">
+    <div class="pie-in">
+      <img src="logo-ceq.png" alt="Logo del CEQ">
+      <div>
+        <p class="pie-version">Control de Guardias del CEQ <b>v1.0</b></p>
+        <p class="pie-copy">© <span id="anio">2026</span> Centro de Estudiantes de Química</p>
+      </div>
+    </div>
+  </footer>
+
+<script>
+  // Dirección del servidor (Google Apps Script). Se manda sin cookies, así no importa qué cuentas tenga abiertas el navegador.
+  const API = 'https://script.google.com/macros/s/AKfycbzDR-uwNLMTyCiWOW-Mqhb6D28Y3DdRDxbdFTe16SW47S5pzNxuj62-91yJX_EkTNpf/exec';
+  const FOTO_MAX_MINUTOS = 10;
+  let ciActual = null, fotoData = null, fotoMod = null, ocupado = false;
+  const $ = id => document.getElementById(id);
+
+  $('anio').textContent = new Date().getFullYear();
+  function tic() {
+    $('reloj').textContent = new Date().toLocaleString('es', { weekday: 'short', day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }
+  tic(); setInterval(tic, 15000);
+
+  // --- memoria del celular (si el navegador no la permite, simplemente no recuerda) ---
+  function leer(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function guardar(k, v) { try { v === null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) {} }
+  function codigoCelular() {
+    let c = leer('guardia_celular');
+    if (!c) {
+      c = (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
+        : Date.now().toString(36) + Math.random().toString(36).slice(2);
+      guardar('guardia_celular', c);
+    }
+    return c;
+  }
+
+  const ICONO = { ok: '#i-ok', err: '#i-alerta', info: '#i-carga', ubic: '#i-ubicacion' };
+  function mostrar(texto, tipo, icono) {
+    $('msgTexto').textContent = texto;
+    $('msgIcono').setAttribute('href', icono || ICONO[tipo] || '#i-alerta');
+    $('msg').className = 'aviso visible ' + tipo;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  function ocultarMsg() { $('msg').className = 'aviso'; }
+
+  async function servidor(accion, datos) {
+    let resp;
+    try {
+      resp = await fetch(API, { method: 'POST', body: JSON.stringify(Object.assign({ accion: accion }, datos)), credentials: 'omit', redirect: 'follow' });
+    } catch (e) {
+      throw new Error('No hay conexión con el servidor. Revisá tu internet e intentá de nuevo.');
+    }
+    if (!resp.ok) throw new Error('El servidor no respondió (código ' + resp.status + '). Intentá de nuevo.');
+    let r;
+    try { r = await resp.json(); } catch (e) { throw new Error('Respuesta inválida del servidor. Intentá de nuevo.'); }
+    if (!r || !r.ok) throw new Error(r && r.error ? r.error : 'Error inesperado.');
+    return r;
+  }
+
+  function vista(cual) {
+    ['vistaCI', 'vistaRegistro', 'vistaFichar'].forEach(v => $(v).classList.toggle('oculto', v !== cual));
+  }
+
+  function fmtFecha(iso) {
+    return new Date(iso).toLocaleString('es', { weekday: 'long', day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }
+
+  function render(r) {
+    ciActual = r.ci;
+    if (!r.nombre) {
+      $('sub').textContent = 'CI ' + r.ci;
+      vista('vistaRegistro');
+      $('nombre').focus();
+      return;
+    }
+    guardar('guardia_ci', r.ci);
+    $('sub').textContent = 'Marcá tu entrada al llegar y tu salida al irte.';
+    $('nombreUsuario').textContent = r.nombre;
+    $('ultimaMarca').textContent = r.ultimo
+      ? 'Última marca: ' + r.ultimo.tipo.toLowerCase() + ', ' + fmtFecha(r.ultimo.fecha)
+      : 'Todavía no marcaste ninguna guardia';
+    vista('vistaFichar');
+    actualizarBotones();
+  }
+
+  function pedirCI() {
+    ciActual = null;
+    guardar('guardia_ci', null);
+    limpiarFoto();
+    $('sub').textContent = 'Registrá tu asistencia a las guardias del CEQ.';
+    $('ci').value = '';
+    vista('vistaCI');
+  }
+
+  async function buscarCI(ci) {
+    ocultarMsg();
+    $('btnCI').disabled = true;
+    try {
+      render(await servidor('estado', { ci: ci }));
+    } catch (e) {
+      pedirCI();
+      mostrar(e.message, 'err');
+    }
+    $('btnCI').disabled = false;
+  }
+
+  function actualizarBotones() {
+    const listo = !!fotoData && !ocupado;
+    $('btnEntrada').disabled = !listo;
+    $('btnSalida').disabled = !listo;
+  }
+
+  function limpiarFoto() {
+    fotoData = null; fotoMod = null;
+    $('preview').style.display = 'none';
+    $('txtFoto').textContent = 'Abrir cámara';
+    actualizarBotones();
+  }
+
+  function achicar(file, max, calidad) {
+    return new Promise((res, rej) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        const k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+        const w = Math.round(img.naturalWidth * k), h = Math.round(img.naturalHeight * k);
+        const c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        c.getContext('2d').drawImage(img, 0, 0, w, h);
+        URL.revokeObjectURL(url);
+        res(c.toDataURL('image/jpeg', calidad));
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('No se pudo leer la foto.')); };
+      img.src = url;
+    });
+  }
+
+  function ubicacion() {
+    return new Promise((res, rej) => {
+      if (!navigator.geolocation) return rej(new Error('Tu navegador no permite obtener la ubicación.'));
+      navigator.geolocation.getCurrentPosition(
+        p => res(p.coords),
+        err => {
+          const m = {
+            1: 'Tenés que permitir el acceso a la ubicación para poder marcar.',
+            2: 'No se pudo obtener tu ubicación. Activá el GPS e intentá de nuevo.',
+            3: 'El GPS tardó demasiado. Intentá de nuevo, mejor cerca de una ventana.',
+          };
+          rej(new Error(m[err.code] || 'Error al obtener la ubicación.'));
+        },
+        { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 });
+    });
+  }
+
+  // --- eventos ---
+  $('btnCI').onclick = () => {
+    const ci = $('ci').value.replace(/\D/g, '');
+    if (ci.length < 5) { mostrar('Escribí tu número de CI, solo números.', 'err'); return; }
+    buscarCI(ci);
+  };
+  $('ci').onkeydown = e => { if (e.key === 'Enter') $('btnCI').click(); };
+  $('btnVolver').onclick = () => { ocultarMsg(); pedirCI(); };
+  $('btnCambiar').onclick = () => { ocultarMsg(); pedirCI(); };
+
+  $('btnRegistrar').onclick = async () => {
+    const n = $('nombre').value.trim();
+    if (n.length < 5 || n.indexOf(' ') === -1) { mostrar('Escribí tu nombre y apellido.', 'err'); return; }
+    $('btnRegistrar').disabled = true;
+    try {
+      const r = await servidor('registrar', { ci: ciActual, nombre: n, celular: codigoCelular() });
+      render(r.estado);
+      mostrar('Listo, quedaste registrado como ' + r.estado.nombre + '.', 'ok');
+    } catch (e) {
+      mostrar(e.message, 'err');
+    }
+    $('btnRegistrar').disabled = false;
+  };
+
+  $('btnFoto').onclick = () => $('foto').click();
+
+  $('foto').onchange = async e => {
+    const f = e.target.files[0];
+    e.target.value = '';
+    if (!f) return;
+    ocultarMsg();
+    if (f.lastModified && Date.now() - f.lastModified > FOTO_MAX_MINUTOS * 60000) {
+      limpiarFoto();
+      mostrar('Esa foto no es de recién. Sacá una foto nueva en este momento.', 'err');
+      return;
+    }
+    try {
+      fotoData = await achicar(f, 1280, 0.7);
+      fotoMod = f.lastModified || Date.now();
+      $('preview').src = fotoData;
+      $('preview').style.display = 'block';
+      $('txtFoto').textContent = 'Sacar otra foto';
+    } catch (err) {
+      limpiarFoto();
+      mostrar(err.message, 'err');
+    }
+    actualizarBotones();
+  };
+
+  async function fichar(tipo) {
+    if (ocupado || !fotoData || !ciActual) return;
+    ocupado = true; actualizarBotones();
+    try {
+      mostrar('Obteniendo tu ubicación…', 'info');
+      const c = await ubicacion();
+      mostrar('Enviando…', 'info');
+      const r = await servidor('fichar', {
+        ci: ciActual, tipo: tipo, celular: codigoCelular(),
+        lat: c.latitude, lon: c.longitude, precision: c.accuracy,
+        foto: fotoData.split(',')[1], fotoModificada: fotoMod,
+      });
+      limpiarFoto();
+      render(r.estado);
+      mostrar(r.mensaje, 'ok');
+    } catch (e) {
+      mostrar(e.message, 'err');
+    }
+    ocupado = false; actualizarBotones();
+  }
+  $('btnEntrada').onclick = () => fichar('Entrada');
+  $('btnSalida').onclick = () => fichar('Salida');
+
+  // --- inicio: si este celular ya recuerda una CI, entra directo ---
+  const ciGuardada = leer('guardia_ci');
+  if (ciGuardada) { $('sub').textContent = 'Cargando…'; buscarCI(ciGuardada); }
+  else pedirCI();
+</script>
+</body>
+</html>
