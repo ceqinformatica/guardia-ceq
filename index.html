@@ -81,6 +81,8 @@
     .dos .btn { margin-top: 0; }
 
     #preview { width: 100%; border-radius: var(--radio-chico); margin-top: 12px; display: none; border: 1px solid var(--linea); }
+    .camara { margin-top: 4px; }
+    .camara video { width: 100%; display: block; border-radius: var(--radio-chico); background: var(--marino); transform: scaleX(-1); aspect-ratio: 3 / 4; object-fit: cover; }
 
     .aviso { display: none; align-items: flex-start; gap: 10px; padding: 12px 14px; border-radius: var(--radio-chico); font-size: 14px; background: var(--blanco); color: var(--marino); border-left: 4px solid var(--azul); font-weight: 500; }
     .aviso.visible { display: flex; }
@@ -132,6 +134,8 @@
     <symbol id="i-cambiar" viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14-5.3L20 9"/><path d="M20 4v5h-5"/><path d="M20 12a8 8 0 0 1-14 5.3L4 15"/><path d="M4 20v-5h5"/></symbol>
     <symbol id="i-flecha" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
     <symbol id="i-volver" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></symbol>
+    <symbol id="i-subir" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></symbol>
+    <symbol id="i-obturador" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></symbol>
   </svg>
 
   <header class="topbar">
@@ -196,9 +200,15 @@
         <div class="paso">Paso 1</div>
         <h2 class="titulo-seccion" id="tFoto">Sacate una foto</h2>
         <p class="ayuda">En el CEQ, que se vea tu cara y el lugar.</p>
-        <input type="file" id="foto" accept="image/*" capture="user" class="oculto">
+        <div id="camaraBox" class="camara oculto">
+          <video id="video" playsinline muted autoplay></video>
+          <button class="btn btn-primary" id="btnDisparar"><svg class="ic"><use href="#i-obturador"/></svg>Tomar foto</button>
+          <button class="btn-link" id="btnCerrarCam"><svg class="ic"><use href="#i-volver"/></svg>Cancelar</button>
+        </div>
         <button class="btn btn-secundario" id="btnFoto"><svg class="ic"><use href="#i-camara"/></svg><span id="txtFoto">Abrir cámara</span></button>
         <img id="preview" alt="Tu foto">
+        <input type="file" id="foto" accept="image/*" capture="user" class="oculto">
+        <button class="btn-link" id="btnSubir"><svg class="ic"><use href="#i-subir"/></svg>¿La cámara no abre? Subir una foto</button>
       </section>
 
       <section class="panel" aria-labelledby="tMarca">
@@ -219,7 +229,7 @@
     <div class="pie-in">
       <img src="logo-ceq.png" alt="Logo del CEQ">
       <div>
-        <p class="pie-version">Control de Guardias del CEQ <b>v1.0</b></p>
+        <p class="pie-version">Control de Guardias del CEQ <b>v1.1</b></p>
         <p class="pie-copy">© <span id="anio">2026</span> Centro de Estudiantes de Química</p>
       </div>
     </div>
@@ -328,26 +338,94 @@
   }
 
   function limpiarFoto() {
+    cerrarCamara();
     fotoData = null; fotoMod = null;
     $('preview').style.display = 'none';
     $('txtFoto').textContent = 'Abrir cámara';
     actualizarBotones();
   }
 
+  function ponerFoto(data, momento) {
+    fotoData = data;
+    fotoMod = momento;
+    $('preview').src = data;
+    $('preview').style.display = 'block';
+    $('txtFoto').textContent = 'Sacar otra foto';
+    actualizarBotones();
+  }
+
+  // --- Cámara dentro de la página (no sale de Chrome, así Android no cierra la página) ---
+  let stream = null;
+  async function abrirCamara() {
+    ocultarMsg();
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      mostrar('Este navegador no permite abrir la cámara desde la página. Usá "Subir una foto".', 'err');
+      return;
+    }
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 960 } }, audio: false });
+      const v = $('video');
+      v.srcObject = stream;
+      try { await v.play(); } catch (e) {}
+      $('preview').style.display = 'none';
+      $('btnFoto').classList.add('oculto');
+      $('camaraBox').classList.remove('oculto');
+    } catch (e) {
+      cerrarCamara();
+      mostrar(e && e.name === 'NotAllowedError'
+        ? 'Tenés que permitir el acceso a la cámara (tocá el candado de la barra de direcciones). También podés usar "Subir una foto".'
+        : 'No se pudo abrir la cámara. Probá de nuevo o usá "Subir una foto".', 'err');
+    }
+  }
+
+  function cerrarCamara() {
+    if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+    $('video').srcObject = null;
+    $('camaraBox').classList.add('oculto');
+    $('btnFoto').classList.remove('oculto');
+  }
+
+  function disparar() {
+    const v = $('video');
+    if (!v.videoWidth) { mostrar('La cámara todavía no está lista. Esperá un segundo y tocá de nuevo.', 'err'); return; }
+    const k = Math.min(1, 1280 / Math.max(v.videoWidth, v.videoHeight));
+    const c = document.createElement('canvas');
+    c.width = Math.round(v.videoWidth * k);
+    c.height = Math.round(v.videoHeight * k);
+    c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+    const data = c.toDataURL('image/jpeg', 0.75);
+    cerrarCamara();
+    ponerFoto(data, Date.now());
+  }
+
+  // --- Respaldo: subir una foto (abre la app de cámara del celular) ---
   function achicar(file, max, calidad) {
+    const limite = new Promise((_, rej) => setTimeout(() => rej(new Error('La foto tardó demasiado en procesarse. Probá de nuevo.')), 20000));
+    return Promise.race([procesar(file, max, calidad), limite]);
+  }
+
+  function dibujar(fuente, w0, h0, max, calidad) {
+    const k = Math.min(1, max / Math.max(w0, h0));
+    const c = document.createElement('canvas');
+    c.width = Math.round(w0 * k); c.height = Math.round(h0 * k);
+    c.getContext('2d').drawImage(fuente, 0, 0, c.width, c.height);
+    return c.toDataURL('image/jpeg', calidad);
+  }
+
+  async function procesar(file, max, calidad) {
+    if (window.createImageBitmap) {
+      try {
+        const bmp = await createImageBitmap(file);
+        const data = dibujar(bmp, bmp.width, bmp.height, max, calidad);
+        if (bmp.close) bmp.close();
+        return data;
+      } catch (e) { /* si falla, se intenta de la otra forma */ }
+    }
     return new Promise((res, rej) => {
       const url = URL.createObjectURL(file);
       const img = new Image();
-      img.onload = () => {
-        const k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
-        const w = Math.round(img.naturalWidth * k), h = Math.round(img.naturalHeight * k);
-        const c = document.createElement('canvas');
-        c.width = w; c.height = h;
-        c.getContext('2d').drawImage(img, 0, 0, w, h);
-        URL.revokeObjectURL(url);
-        res(c.toDataURL('image/jpeg', calidad));
-      };
-      img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('No se pudo leer la foto.')); };
+      img.onload = () => { const d = dibujar(img, img.naturalWidth, img.naturalHeight, max, calidad); URL.revokeObjectURL(url); res(d); };
+      img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('No se pudo leer la foto. Probá de nuevo.')); };
       img.src = url;
     });
   }
@@ -393,30 +471,44 @@
     $('btnRegistrar').disabled = false;
   };
 
-  $('btnFoto').onclick = () => $('foto').click();
+  $('btnFoto').onclick = abrirCamara;
+  $('btnDisparar').onclick = disparar;
+  $('btnCerrarCam').onclick = cerrarCamara;
+  $('btnSubir').onclick = () => {
+    cerrarCamara();
+    try { sessionStorage.setItem('guardia_esperando_foto', '1'); } catch (e) {}
+    $('foto').click();
+  };
 
-  $('foto').onchange = async e => {
-    const f = e.target.files[0];
+  async function fotoElegida(e) {
+    try { sessionStorage.removeItem('guardia_esperando_foto'); } catch (err) {}
+    const f = e.target.files && e.target.files[0];
     e.target.value = '';
     if (!f) return;
-    ocultarMsg();
     if (f.lastModified && Date.now() - f.lastModified > FOTO_MAX_MINUTOS * 60000) {
       limpiarFoto();
       mostrar('Esa foto no es de recién. Sacá una foto nueva en este momento.', 'err');
       return;
     }
+    mostrar('Procesando la foto…', 'info');
     try {
-      fotoData = await achicar(f, 1280, 0.7);
-      fotoMod = f.lastModified || Date.now();
-      $('preview').src = fotoData;
-      $('preview').style.display = 'block';
-      $('txtFoto').textContent = 'Sacar otra foto';
+      ponerFoto(await achicar(f, 1280, 0.7), f.lastModified || Date.now());
+      ocultarMsg();
     } catch (err) {
       limpiarFoto();
       mostrar(err.message, 'err');
     }
-    actualizarBotones();
-  };
+  }
+  $('foto').addEventListener('change', fotoElegida);
+
+  // Si Android cerró la página mientras estaba abierta la app de cámara, se avisa al volver.
+  try {
+    if (sessionStorage.getItem('guardia_esperando_foto')) {
+      sessionStorage.removeItem('guardia_esperando_foto');
+      setTimeout(() => mostrar('El celular recargó la página mientras usabas la cámara y la foto se perdió. Usá el botón "Abrir cámara", que no sale de la página.', 'err'), 800);
+    }
+  } catch (e) {}
+  document.addEventListener('visibilitychange', () => { if (document.hidden) cerrarCamara(); });
 
   async function fichar(tipo) {
     if (ocupado || !fotoData || !ciActual) return;
